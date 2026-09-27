@@ -1,0 +1,8 @@
+name: snowflake_dbt_cicd
+version: '1.0.0'
+config-version: 2
+profile: snowflake_dbt_cicd
+model-paths: ["models"]
+models:
+  snowflake_dbt_cicd:
+    +materialized: view
