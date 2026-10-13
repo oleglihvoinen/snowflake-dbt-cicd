@@ -1,19 +1,43 @@
-# Snowflake + dbt CI/CD
+# Snowflake + dbt Release Engineering
 
-Portfolio/reference implementation of a Git-based CI workflow for dbt transformations running on Snowflake.
+A governed CI/CD pattern for Snowflake/dbt that treats analytical transformations as a **controlled software release**, not just a `dbt build` command.
 
-## Delivery flow
+## Release flow
+
 ```text
-Feature branch -> Pull request -> dbt build/test -> review -> merge -> production deployment
+commit
+  ↓
+pull request
+  ├─ static SQL policy
+  ├─ Python policy tests
+  ├─ dbt parse/build
+  └─ retained dbt artifacts
+  ↓
+review / merge
+  ↓
+exact approved Git SHA
+  ↓
+protected GitHub production environment
+  ↓
+production dbt build
+  ↓
+retained manifest + run results
 ```
 
-## Demonstrated controls
-- dbt-snowflake installed in a repeatable runner
-- Automated `dbt deps` and `dbt build`
-- Snowflake configuration supplied through GitHub secrets
-- Pull-request validation
-- Version-controlled data transformation delivery
+## Implemented controls
 
-Required secrets: `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_ROLE`, `SNOWFLAKE_WAREHOUSE`, `SNOWFLAKE_DATABASE`, and `SNOWFLAKE_SCHEMA`.
+- static policy scanner for model SQL
+- blocks broad `select *`
+- blocks hard-coded PROD/PRODUCTION relations
+- blocks destructive DDL in model SQL
+- automated policy tests
+- pull-request dbt parse/build with fail-fast behavior
+- artifact retention for `manifest.json`, `run_results.json` and catalog when present
+- separate production deployment workflow
+- exact commit-SHA verification before deployment
+- GitHub environment boundary for production approvals/secrets
+- documented path to dbt state-aware/slim CI
 
-For a production platform I would additionally use environment protection, least-privilege roles, state-aware/slim CI, artifact retention and operational monitoring.
+This repository demonstrates release governance. Actual Snowflake execution requires repository secrets and environment-specific roles.
+
+**Technologies:** Snowflake · dbt · GitHub Actions · Python · SQL policy-as-code · CI/CD · release governance · DevOps
