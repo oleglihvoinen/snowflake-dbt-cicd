@@ -1,0 +1,42 @@
+name: dbt production deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Commit SHA approved for production
+        required: true
+
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_sha }}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install dbt-snowflake
+      - name: Verify requested SHA
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.git_sha }}"
+      - run: python ci/sql_policy.py --models models
+      - run: dbt build --target prod --fail-fast
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dbt-production-artifacts
+          path: |
+            target/manifest.json
+            target/run_results.json
+          if-no-files-found: ignore
